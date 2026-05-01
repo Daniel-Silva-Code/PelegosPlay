@@ -3,137 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pelego Play - Dashboard</title>
+    <title>Pelego Play</title>
+    
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/00ff88/ffffff?text=P">
+    
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Pelego Play","short_name":"Pelego","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#00ff88","icons":[{"src":"https://via.placeholder.com/192/00ff88/ffffff?text=P","sizes":"192x192","type":"image/png"}]}'>
+ 
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; margin: 0; padding: 15px; }
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #00ff88; margin: 0; }
-        
-        /* Área de Criação */
-        .creation-area { background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        /* CSS idêntico à versão anterior - Otimizado para Mobile */
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; margin: 0; padding: 15px; user-select: none; }
+        header { text-align: center; margin-bottom: 20px; padding-top: 10px; }
+        h1 { color: #00ff88; margin: 0; font-size: 2rem; }
+        .creation-area { background: #1e1e1e; padding: 15px; border-radius: 15px; margin-bottom: 25px; }
         .input-group { display: flex; gap: 8px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #2a2a2a; color: white; outline: none; }
-        button { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-add { background: #00ff88; color: #121212; padding: 0 20px; }
- 
-        /* Grid de Disputas */
+        input { flex: 1; padding: 15px; border-radius: 10px; border: none; background: #2a2a2a; color: white; font-size: 1rem; }
+        button { border: none; border-radius: 10px; cursor: pointer; font-weight: bold; active { opacity: 0.7; } }
+        .btn-add { background: #00ff88; color: #121212; padding: 10px 20px; }
         #dashboard { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        @media(min-width: 768px) { #dashboard { grid-template-columns: 1fr 1fr; } }
- 
-        /* Card de Disputa */
-        .disputa-card { background: #1e1e1e; border-radius: 12px; padding: 15px; border-top: 4px solid #00ff88; position: relative; }
+        .disputa-card { background: #1e1e1e; border-radius: 15px; padding: 15px; border-top: 5px solid #00ff88; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .disputa-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .disputa-title { font-size: 1.2rem; color: #00ff88; font-weight: bold; }
-        
-        .player-row { display: flex; align-items: center; background: #2a2a2a; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; }
-        .player-name { flex: 1; font-weight: 500; }
-        .score { font-size: 1.1rem; font-weight: bold; margin-right: 12px; min-width: 25px; text-align: center; }
- 
-        /* Botões */
-        .btn-mini { width: 30px; height: 30px; font-size: 1rem; margin-left: 4px; }
+        .disputa-title { font-size: 1.3rem; color: #00ff88; font-weight: bold; }
+        .player-row { display: flex; align-items: center; background: #2a2a2a; padding: 12px; border-radius: 10px; margin-bottom: 8px; }
+        .player-name { flex: 1; font-size: 1.1rem; }
+        .score { font-size: 1.5rem; font-weight: bold; margin-right: 15px; min-width: 40px; text-align: center; color: #00ff88; }
+        .btn-mini { width: 45px; height: 45px; margin-left: 5px; font-size: 1.2rem; }
         .btn-plus { background: #28a745; color: white; }
         .btn-minus { background: #ffc107; color: black; }
         .btn-del { background: #dc3545; color: white; }
-        .btn-remove-disputa { background: none; color: #666; font-size: 1.2rem; }
+        .btn-clear { background: none; color: #666; font-size: 1.5rem; }
     </style>
 </head>
 <body>
  
 <header>
     <h1>Pelego Play</h1>
-    <p style="font-size: 0.8rem; color: #888;">Controle de Disputas</p>
 </header>
  
 <div class="creation-area">
     <div class="input-group">
-        <input type="text" id="new-disputa-name" placeholder="Nova disputa (ex: Truco, FIFA)">
+        <input type="text" id="new-disputa-name" placeholder="Ex: Poker, Truco...">
         <button class="btn-add" onclick="criarDisputa()">Criar</button>
     </div>
 </div>
  
-<div id="dashboard">
-    </div>
+<div id="dashboard"></div>
  
 <script>
-    let dados = [];
+    // Registro do Service Worker para permitir instalação (PWA)
+    if ('serviceWorker' in navigator) {
+        const sw = 'data:text/javascript;base64,' + btoa('self.addEventListener("fetch", (event) => {});');
+        navigator.serviceWorker.register(sw);
+    }
+ 
+    let dados = JSON.parse(localStorage.getItem('pelego_data')) || [];
+ 
+    function salvar() {
+        localStorage.setItem('pelego_data', JSON.stringify(dados));
+        renderizar();
+    }
  
     function criarDisputa() {
         const input = document.getElementById('new-disputa-name');
-        const nome = input.value.trim();
-        if (nome === "") return;
- 
-        const novaDisputa = {
-            id: Date.now(),
-            titulo: nome,
-            jogadores: []
-        };
- 
-        dados.push(novaDisputa);
+        if (!input.value.trim()) return;
+        dados.push({ id: Date.now(), titulo: input.value, jogadores: [] });
         input.value = "";
-        renderizar();
+        salvar();
     }
  
-    function adicionarJogador(disputaId) {
+    function adicionarJogador(id) {
         const nome = prompt("Nome do jogador:");
         if (!nome) return;
- 
-        const disputa = dados.find(d => d.id === disputaId);
-        disputa.jogadores.push({ nome: nome, pontos: 0 });
-        renderizar();
+        const disp = dados.find(d => d.id === id);
+        disp.jogadores.push({ nome: nome, pontos: 0 });
+        salvar();
     }
  
-    function mudarPontos(disputaId, playerIndex, valor) {
-        const disputa = dados.find(d => d.id === disputaId);
-        disputa.jogadores[playerIndex].pontos += valor;
-        renderizar();
+    function mudarPontos(id, pIdx, val) {
+        const disp = dados.find(d => d.id === id);
+        disp.jogadores[pIdx].pontos += val;
+        salvar();
     }
  
-    function removerJogador(disputaId, playerIndex) {
-        const disputa = dados.find(d => d.id === disputaId);
-        disputa.jogadores.splice(playerIndex, 1);
-        renderizar();
+    function removerJogador(id, pIdx) {
+        if(confirm("Remover este jogador?")) {
+            const disp = dados.find(d => d.id === id);
+            disp.jogadores.splice(pIdx, 1);
+            salvar();
+        }
     }
  
-    function excluirDisputa(disputaId) {
+    function excluirDisputa(id) {
         if(confirm("Excluir esta disputa inteira?")) {
-            dados = dados.filter(d => d.id !== disputaId);
-            renderizar();
+            dados = dados.filter(d => d.id !== id);
+            salvar();
         }
     }
  
     function renderizar() {
         const dashboard = document.getElementById('dashboard');
-        dashboard.innerHTML = "";
- 
-        dados.forEach(disputa => {
-            const card = document.createElement('div');
-            card.className = 'disputa-card';
-            
-            let jogadoresHtml = disputa.jogadores.map((p, i) => `
-                <div class="player-row">
-                    <span class="player-name">${p.nome}</span>
-                    <span class="score">${p.pontos}</span>
-                    <button class="btn-mini btn-minus" onclick="mudarPontos(${disputa.id}, ${i}, -1)">-</button>
-                    <button class="btn-mini btn-plus" onclick="mudarPontos(${disputa.id}, ${i}, 1)">+</button>
-                    <button class="btn-mini btn-del" onclick="removerJogador(${disputa.id}, ${i})">×</button>
-                </div>
-            `).join('');
- 
-            card.innerHTML = `
+        dashboard.innerHTML = dados.map(disp => `
+            <div class="disputa-card">
                 <div class="disputa-header">
-                    <span class="disputa-title">${disputa.titulo}</span>
-                    <button class="btn-remove-disputa" onclick="excluirDisputa(${disputa.id})">×</button>
+                    <span class="disputa-title">${disp.titulo}</span>
+                    <button class="btn-clear" onclick="excluirDisputa(${disp.id})">×</button>
                 </div>
-                <div id="players-${disputa.id}">
-                    ${jogadoresHtml}
-                </div>
-                <button class="btn-add" style="width:100%; margin-top:10px; padding:8px;" onclick="adicionarJogador(${disputa.id})">
-                    + Adicionar Jogador
-                </button>
-            `;
-            dashboard.appendChild(card);
-        });
+                ${disp.jogadores.map((p, i) => `
+                    <div class="player-row">
+                        <span class="player-name">${p.nome}</span>
+                        <span class="score">${p.pontos}</span>
+                        <button class="btn-mini btn-minus" onclick="mudarPontos(${disp.id}, ${i}, -1)">-</button>
+                        <button class="btn-mini btn-plus" onclick="mudarPontos(${disp.id}, ${i}, 1)">+</button>
+                        <button class="btn-mini btn-del" onclick="removerJogador(${disp.id}, ${i})">×</button>
+                    </div>
+                `).join('')}
+                <button class="btn-add" style="width:100%; margin-top:10px; padding:15px;" onclick="adicionarJogador(${disp.id})">+ Novo Jogador</button>
+            </div>
+        `).join('');
     }
+ 
+    renderizar();
 </script>
  
 </body>
